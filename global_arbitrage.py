@@ -14,34 +14,37 @@ class Arbitrage:
     def buy_by_first_crypto(self, wallet): # if negative diff
         print("BUY", [self.list_paires[0]])
         self.maj_order_book()
-        wallet.amount[self.list_paires[0]] = wallet.amount[self.list_paires[2]] / self.get_price(self.list_paires[0] + self.list_paires[2])
+        wallet.amount[self.list_paires[0]] = wallet.amount[self.list_paires[2]] / self.get_price_buy(self.list_paires[0] + self.list_paires[2])
         wallet.amount[self.list_paires[2]] = 0
         self.maj_order_book()
-        wallet.amount[self.list_paires[1]] = wallet.amount[self.list_paires[0]] * self.get_price(self.list_paires[0] + self.list_paires[1])
+        wallet.amount[self.list_paires[1]] = wallet.amount[self.list_paires[0]] * self.get_price_sell(self.list_paires[0] + self.list_paires[1])
         wallet.amount[self.list_paires[0]] = 0
         self.maj_order_book()
-        wallet.amount[self.list_paires[2]] = wallet.amount[self.list_paires[1]] * self.get_price(self.list_paires[1] + self.list_paires[2])
+        wallet.amount[self.list_paires[2]] = wallet.amount[self.list_paires[1]] * self.get_price_sell(self.list_paires[1] + self.list_paires[2])
         wallet.amount[self.list_paires[1]] = 0
 
 
     def buy_by_second_crypto(self, wallet): # if positive diff
         print("BUY", [self.list_paires[1]])
         self.maj_order_book()
-        wallet.amount[self.list_paires[1]] = wallet.amount[self.list_paires[2]] / self.get_price(self.list_paires[1] + self.list_paires[2])
+        wallet.amount[self.list_paires[1]] = wallet.amount[self.list_paires[2]] / self.get_price_buy(self.list_paires[1] + self.list_paires[2])
         wallet.amount[self.list_paires[2]] = 0
         self.maj_order_book()
-        wallet.amount[self.list_paires[0]] = wallet.amount[self.list_paires[1]] / self.get_price(self.list_paires[0] + self.list_paires[1])
+        wallet.amount[self.list_paires[0]] = wallet.amount[self.list_paires[1]] / self.get_price_buy(self.list_paires[0] + self.list_paires[1])
         wallet.amount[self.list_paires[1]] = 0
         self.maj_order_book()
-        wallet.amount[self.list_paires[2]] = wallet.amount[self.list_paires[0]] * self.get_price(self.list_paires[0] + self.list_paires[2])
+        wallet.amount[self.list_paires[2]] = wallet.amount[self.list_paires[0]] * self.get_price_sell(self.list_paires[0] + self.list_paires[2])
         wallet.amount[self.list_paires[0]] = 0
 
 
     def new_request_price(self,paire):
         return float(self.get_order_book(paire)['bids'][0][0])
 
-    def get_price(self, paire):
+    def get_price_sell(self, paire):
         return float(self.dict_order_book[paire]['bids'][0][0])
+
+    def get_price_buy(self, paire):
+        return float(self.dict_order_book[paire]['asks'][0][0])
 
     def get_volume(self, paire):
         return float(self.dict_order_book[paire]['bids'][0][1])
@@ -59,14 +62,19 @@ class Arbitrage:
         self.dict_order_book[self.list_paires[0] + self.list_paires[1]] = self.get_order_book(self.list_paires[0] + self.list_paires[1])
 
     def get_diff(self):
-        self.prix_one_per_two = self.get_price(self.list_paires[0] + self.list_paires[2]) / self.get_price(self.list_paires[1] + self.list_paires[2])
-        self.prix_constate = self.get_price(self.list_paires[0] + self.list_paires[1])
-        return (self.prix_one_per_two - self.prix_constate) / self.prix_constate * 100
+        wallet = 100
+        tmp1 = wallet / self.get_price_buy(self.list_paires[0] + self.list_paires[2])
+        tmp2 = tmp1 * self.get_price_sell(self.list_paires[0] + self.list_paires[1])
+        wallet = tmp2 * self.get_price_sell(self.list_paires[1] + self.list_paires[2])
+        diff_buy_crypto_1 = (wallet - 100)
 
+        wallet = 100
+        tmp2 = wallet / self.get_price_buy(self.list_paires[1] + self.list_paires[2])
+        tmp1 = tmp2 / self.get_price_buy(self.list_paires[0] + self.list_paires[1])
+        wallet = tmp1 * self.get_price_sell(self.list_paires[0] + self.list_paires[2])
+        diff_buy_crypto_2 = (wallet - 100)
 
-        # tmp1 = (self.prix_one_per_two - self.prix_constate) / self.prix_constate * 100
-
-
-        # tmp2 =
-
-        # return (tmp1, tmp2)
+        if diff_buy_crypto_1 > diff_buy_crypto_2:
+            return (True, diff_buy_crypto_1)
+        else:
+            return (False, diff_buy_crypto_2)

@@ -3,6 +3,7 @@ from time import sleep, time
 from cle_api import cle
 from colorama import Fore, Back, Style, init
 from global_arbitrage import Arbitrage
+from wallet import Wallet
 
 init()
 
@@ -15,12 +16,18 @@ def ping(client):
 
 dict_arbitrages = {"BAKE_BNB_BUSD" : ["BAKE", "BNB", "BUSD"],
                    "CAKE_BNB_BUSD" : ["CAKE", "BNB", "BUSD"],
-                   "DOGE_BTC_BUSD" : ["DOGE", "BTC", "BUSD"],
-                   "DOGE_BTC_USDT" : ["DOGE", "BTC", "USDT"]}
-
-class Wallet():
-    def __init__(self):
-        self.amount = {'BNB' : 0.2, 'BUSD' : 1000, 'USDT' : 1000, 'BAKE' : 0, 'TAX_INCOME' : 0}
+                #    "DOGE_BTC_BUSD" : ["DOGE", "BTC", "BUSD"],
+                #    "DOGE_BTC_USDT" : ["DOGE", "BTC", "USDT"],
+                   "SOL_BNB_USDT" : ["SOL", "BNB", "USDT"],
+                   "SOL_BNB_BUSD" : ["SOL", "BNB", "BUSD"],
+                   "YFII_BNB_BUSD" : ["YFII", "BNB", "BUSD"],
+                   "PROM_BNB_BUSD" : ["PROM", "BNB", "BUSD"],
+                   "BURGER_BNB_BUSD" : ["BURGER", "BNB", "BUSD"],
+                   "BURGER_BNB_USDT" : ["BURGER", "BNB", "USDT"],
+                   "SLP_ETH_USDT" : ["SLP", "ETH", "USDT"],
+                   "TRX_XRP_USDT" : ["TRX", "XRP", "USDT"],
+                   "BTT_TRX_USDT" : ["BTT", "TRX", "USDT"],
+                   }
 
 def calcul_nb_request(list_arbitrages):
     request_nb = 0
@@ -30,21 +37,21 @@ def calcul_nb_request(list_arbitrages):
     return request_nb
 
 def make_arbitrage(arbitrage, wallet):
-    print(Fore.YELLOW + "ACTION ARBITRAGE" + Style.RESET_ALL)
+    print(Fore.YELLOW + "\nACTION ARBITRAGE : " + str(arbitrage.list_paires) + Style.RESET_ALL)
     print("WALLET AVANT = ", round(wallet.amount[arbitrage.list_paires[2]], 2))
     tmp = wallet.amount[arbitrage.list_paires[2]]
     tax = (wallet.amount[arbitrage.list_paires[2]] * (0.0750 / 100)) * 3
-    print("ESTIMATION WALLET AFTER ARBITRAGE =", round(wallet.amount[arbitrage.list_paires[2]] * (1 + abs(arbitrage.get_diff() / 100 )) - tax, 2))
+    print("ESTIMATION WALLET AFTER ARBITRAGE =", round(wallet.amount[arbitrage.list_paires[2]] * (1 + abs(arbitrage.get_diff()[1] / 100 )) - tax, 2))
     wallet.amount['TAX_INCOME'] += tax / 10
     wallet.amount[arbitrage.list_paires[2]] -= tax
     print(Fore.RED + "TAX : " + str(tax) + Style.RESET_ALL)
     print("WALLET AFTER TAX =", round(wallet.amount[arbitrage.list_paires[2]], 2))
-    if arbitrage.get_diff() > 0:
-        arbitrage.buy_by_second_crypto(wallet)
-    else:
+    if arbitrage.get_diff()[0]:
         arbitrage.buy_by_first_crypto(wallet)
+    else:
+        arbitrage.buy_by_second_crypto(wallet)
     print("FULL WALLET APRES =", wallet.amount)
-    print(Fore.GREEN + "Benefice = " + str(round(wallet.amount[arbitrage.list_paires[2]] - tmp), 2) + Style.RESET_ALL)
+    print(Fore.GREEN + "Benefice = " + str(round(wallet.amount[arbitrage.list_paires[2]] - tmp, 2)) + Style.RESET_ALL)
     print()
     sleep(5)
 
@@ -58,10 +65,6 @@ if __name__ == "__main__":
 
     ping(client)
 
-    # init class arbitrage
-    arbitrage_cake = Arbitrage(client, dict_arbitrages["CAKE_BNB_BUSD"])
-    arbitrage_bake = Arbitrage(client, dict_arbitrages["BAKE_BNB_BUSD"])
-
     list_arbitrages = []
     for elem in dict_arbitrages:
         list_arbitrages.append(Arbitrage(client, dict_arbitrages[elem]))
@@ -70,10 +73,14 @@ if __name__ == "__main__":
         start_time = time()
         for arbitrage in list_arbitrages:
             arbitrage.maj_order_book()
-            print(" diff =", round(arbitrage.get_diff(), 4), "%", "de :", arbitrage.list_paires)
-            if arbitrage.get_diff() > 0.25:
+            if arbitrage.get_diff()[1] > 0:
+                print(Fore.GREEN, end="")
+            print(" diff =", (" " if arbitrage.get_diff()[1] > 0 else "") + str(round(arbitrage.get_diff()[1], 4)) + "%", "de :", arbitrage.list_paires)
+            print(Style.RESET_ALL, end="")
+            if arbitrage.get_diff()[1] > 0.3:
+                print(arbitrage.get_diff()[0])
                 make_arbitrage(arbitrage, wallet)
-        
+        print(wallet.amount)
         end_time = time()
         total_time = end_time - start_time
         nb_request = calcul_nb_request(list_arbitrages)
